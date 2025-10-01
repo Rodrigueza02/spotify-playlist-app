@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player - Favoritos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- VIDEO DE FONDO -->
+    <video autoplay muted loop id="bg-video">
+        <source src="{{ url_for('static', filename='video/fondo.mp4') }}" type="video/mp4">
+    </video>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>MusicApp</h2>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Inicio</a></li>
+                <li><a href="{{ url_for('playlists') }}">Playlists</a></li>
+                <li class="active"><a href="{{ url_for('favoritos') }}">Favoritos</a></li>
+            </ul>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            <h1>Mis Favoritos</h1>
+
+            {% if favoritos %}
+            <div class="favorites-list">
+                {% for track in favoritos %}
+                <div class="fav-card">
+                    <img src="{{ track.image or url_for('static', filename='img/placeholder.png') }}" alt="{{ track.name }}">
+                    <h3>{{ track.name }}</h3>
+                    <p>{{ track.artist }}</p>
+                    <button class="play-btn" onclick="playTrack('{{ track.id }}')">▶ Reproducir</button>
+                    <button onclick="removeFavorito('{{ track.id }}')">Eliminar</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--color-text-secondary); margin-top: 60px; font-size: 18px;">
+                No tienes canciones favoritas aún. ¡Empieza a agregar tus canciones favoritas! ❤️
+            </p>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- Reproductor Global -->
+    <div class="player-container">
+        <div class="player">
+            <!-- Información de la canción -->
+            <div class="song-info">
+                <div class="cover-container">
+                    <video autoplay muted loop id="cover-video" style="display:none;">
+                        <source src="{{ url_for('static', filename='video/vinilo.mp4') }}" type="video/mp4">
+                    </video>
+                    <img id="cover" src="{{ url_for('static', filename='img/placeholder.png') }}" alt="cover" style="display:none;">
+                </div>
+                <div class="track-info">
+                    <h2 id="song-title">Nada reproduciéndose</h2>
+                    <p id="song-artist">Selecciona una canción</p>
+                </div>
+                <button id="fav-btn" class="heart-btn" onclick="toggleFavorito()">❤️</button>
+            </div>
+
+            <!-- Controles centrales -->
+            <div class="player-center">
+                <div class="controls">
+                    <button onclick="prev()">⏮</button>
+                    <button id="play-pause" onclick="togglePlay()">▶</button>
+                    <button onclick="next()">⏭</button>
+                </div>
+                <div class="progress-container">
+                    <span id="current-time">0:00</span>
+                    <input type="range" id="progress-bar" value="0" min="0" max="100">
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <!-- Extras -->
+            <div class="player-extras"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentTrackId = null;
+        let duration = 0;
+
+        async function playTrack(trackId) {
+            try {
+                await fetch(`/play_track/${trackId}`, { method: "POST" });
+                setTimeout(loadCurrentTrack, 500);
+            } catch (error) {
+                console.error("Error reproduciendo:", error);
+            }
+        }
+
+        async function removeFavorito(trackId) {
+            try {
+                await fetch(`/toggle_favorito/${trackId}`, { method: "POST" });
+                location.reload();
+            } catch (error) {
+                console.error("Error eliminando favorito:", error);
+            }
+        }
+
+        async function loadCurrentTrack() {
+            try {
+                const res = await fetch("/current");
+                const data = await res.json();
+
+                document.getElementById("song-title").textContent = data.trackTitle || "Nada reproduciéndose";
+                document.getElementById("song-artist").textContent = data.trackArtist || "Selecciona una canción";
+
+                currentTrackId = data.trackId;
+                duration = data.duration || 0;
+
+                const coverVideo = document.getElementById("cover-video");
+                const coverImg = document.getElementById("cover");
+
+                if (data.coverUrl) {
+                    coverVideo.style.display = "none";
+                    coverImg.src = data.coverUrl;
+                    coverImg.style.display = "block";
+                } else {
+                    coverVideo.style.display = "block";
+                    coverImg.style.display = "none";
+                }
+
+                const favBtn = document.getElementById("fav-btn");
+                if (data.isFavorite) {
+                    favBtn.textContent = "💔";
+                    favBtn.classList.add("active");
+                } else {
+                    favBtn.textContent = "❤️";
+                    favBtn.classList.remove("active");
+                }
+
+                const progressBar = document.getElementById("progress-bar");
+                const currentTime = document.getElementById("current-time");
+                const totalTime = document.getElementById("total-time");
+
+                if (duration > 0) {
+                    progressBar.max = duration;
+                    progressBar.value = data.progress || 0;
+                    currentTime.textContent = formatTime((data.progress || 0) / 1000);
+                    totalTime.textContent = formatTime(duration / 1000);
+                }
+
+                document.getElementById("play-pause").textContent = data.trackId ? "⏸" : "▶";
+            } catch (error) {
+                console.error("Error cargando canción:", error);
+            }
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? "0" : ""}${s}`;
+        }
+
+        async function togglePlay() {
+            await fetch("/play");
+            setTimeout(loadCurrentTrack, 500);
+        }
+
+        async function next() {
+            await fetch("/next");
+            setTimeout(loadCurrentTrack, 500);
+        }
+
+        async function prev() {
+            await fetch("/prev");
+            setTimeout(loadCurrentTrack, 500);
+        }
+
+        async function toggleFavorito() {
+            if (!currentTrackId) return;
+            
+            const res = await fetch(`/toggle_favorito/${currentTrackId}`, { method: "POST" });
+            const data = await res.json();
+            
+            const favBtn = document.getElementById("fav-btn");
+            if (data.status === "added") {
+                favBtn.textContent = "💔";
+                favBtn.classList.add("active");
+            } else {
+                favBtn.textContent = "❤️";
+                favBtn.classList.remove("active");
+                location.reload();
+            }
+        }
+
+        document.getElementById("progress-bar").addEventListener("input", async (e) => {
+            await fetch(`/seek/${e.target.value}`, { method: "POST" });
+        });
+
+        setInterval(loadCurrentTrack, 3000);
+        loadCurrentTrack();
+    </script>
+</body>
+</html>
+

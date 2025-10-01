@@ -1,0 +1,68 @@
+<!DOCTYPE html> 
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ playlist.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Mi Música</h2>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Inicio</a></li>
+                <li class="active"><a href="{{ url_for('playlists') }}">Playlists</a></li>
+                <li><a href="{{ url_for('favoritos') }}">Favoritos</a></li>
+            </ul>
+        </aside>
+
+        <!-- Detalle de Playlist -->
+        <section class="playlist-detail">
+            <h2>{{ playlist.name }}</h2>
+            <p>{{ playlist.tracks.total }} canciones</p>
+            {% if playlist.images %}
+                <img src="{{ playlist.images[0].url }}" alt="{{ playlist.name }}" style="width:200px; border-radius:12px;">
+            {% endif %}
+
+            <div class="track-list">
+                {% for item in tracks %}
+                    {% set track = item.track %}
+                    <div class="track">
+                        <p>
+                            <strong>{{ track.name }}</strong> - {{ track.artists[0].name }}
+                            <!-- Botón corazón -->
+                            <button class="fav-btn" data-id="{{ track.id }}" style="margin-left:10px; cursor:pointer; border:none; background:none; font-size:18px;">
+                                ❤️
+                            </button>
+                        </p>
+                        {% if track.album.images %}
+                            <img src="{{ track.album.images[0].url }}" alt="{{ track.album.name }}" style="width:80px; border-radius:8px;">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <!-- Script para manejar favoritos -->
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".fav-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const trackId = btn.dataset.id;
+                fetch(`/toggle_favorito/${trackId}`, { method: "POST" })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === "added") {
+                            btn.textContent = "💔"; // Si se agregó -> mostrar corazón roto
+                        } else {
+                            btn.textContent = "❤️"; // Si se quitó -> volver a corazón vacío
+                        }
+                    });
+            });
+        });
+    });
+    </script>
+</body>
+</html>

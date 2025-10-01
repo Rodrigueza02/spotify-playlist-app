@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Playlists{% endblock %}
+
+{% block content %}
+<h1>🎶 Mis Playlists</h1>
+
+<div class="playlist-grid">
+    {% if playlists %}
+        {% for playlist in playlists %}
+        <div class="playlist-card">
+            <a href="{{ url_for('playlist_detail', playlist_id=playlist.id) }}">
+                <img src="{{ playlist.images[0].url if playlist.images else url_for('static', filename='img/vinilo.jpeg') }}" alt="cover">
+                <h3>{{ playlist.name }}</h3>
+            </a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No tienes playlists aún.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
+

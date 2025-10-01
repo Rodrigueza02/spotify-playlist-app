@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Playlist - Lista Doblemente Enlazada</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    <style>
+        .form-panel {
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .form-panel h2 {
+            color: #ff1744;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b3b3b3;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff1744;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn-add {
+            background: #ff1744;
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .btn-add:hover {
+            background: #c4001d;
+            transform: translateY(-2px);
+        }
+        
+        .playlist-container {
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+        }
+        
+        .playlist-container h2 {
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .song-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .song-card:hover {
+            border-color: #ff1744;
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        
+        .song-card.active {
+            border-color: #ff1744;
+            background: rgba(255, 23, 68, 0.1);
+        }
+        
+        .song-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #b3b3b3;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .song-card.active .song-number {
+            color: #ff1744;
+        }
+        
+        .song-details {
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .song-details h4 {
+            margin: 0 0 4px 0;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .song-details p {
+            margin: 0;
+            color: #b3b3b3;
+            font-size: 14px;
+        }
+        
+        .song-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .btn-icon:hover {
+            background: #ff1744;
+            border-color: #ff1744;
+            transform: scale(1.1);
+        }
+        
+        .btn-delete:hover {
+            background: #ff5252;
+            border-color: #ff5252;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #b3b3b3;
+        }
+        
+        .empty-state p:first-child {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 23, 68, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 23, 68, 0.3);
+        }
+        
+        .stats p {
+            margin: 0 0 8px 0;
+            color: #b3b3b3;
+            font-size: 14px;
+        }
+        
+        .stats h3 {
+            margin: 0;
+            color: #ff1744;
+            font-size: 36px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- VIDEO DE FONDO -->
+    <video autoplay muted loop id="bg-video">
+        <source src="{{ url_for('static', filename='video/fondo.mp4') }}" type="video/mp4">
+    </video>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Mi Música</h2>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Inicio</a></li>
+                <li><a href="{{ url_for('playlists') }}">Playlists</a></li>
+                <li><a href="{{ url_for('favoritos') }}">Favoritos</a></li>
+                <li class="active"><a href="{{ url_for('mi_playlist_page') }}">Mi Playlist</a></li>
+            </ul>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            <h1>Mi Playlist Personalizada</h1>
+            <p style="color: #b3b3b3; margin-bottom: 30px;">Lista Doblemente Enlazada - Taller de Estructuras de Datos</p>
+
+            <!-- Formulario para agregar canciones -->
+            <div class="form-panel">
+                <h2>Agregar Canción</h2>
+                <form id="form-agregar">
+                    <div class="form-group">
+                        <label for="titulo">Título de la canción</label>
+                        <input type="text" id="titulo" required placeholder="Ej: Bohemian Rhapsody">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="artista">Artista</label>
+                        <input type="text" id="artista" required placeholder="Ej: Queen">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duracion">Duración</label>
+                        <input type="text" id="duracion" placeholder="3:30" value="3:30">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="album">Álbum (opcional)</label>
+                        <input type="text" id="album" placeholder="Ej: A Night at the Opera">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="posicion">Posición en la lista</label>
+                        <select id="posicion">
+                            <option value="final">Al final</option>
+                            <option value="inicio">Al inicio</option>
+                            <option value="custom">Posición específica</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="posicion-custom" style="display: none;">
+                        <label for="posicion-numero">Número de posición (0 = inicio)</label>
+                        <input type="number" id="posicion-numero" min="0" value="0">
+                    </div>
+                    
+                    <button type="submit" class="btn-add">Agregar Canción</button>
+                </form>
+
+                <div class="stats">
+                    <p>Total de canciones</p>
+                    <h3 id="total-canciones">0</h3>
+                </div>
+            </div>
+
+            <!-- Lista de canciones -->
+            <div class="playlist-container">
+                <h2>Canciones en la Playlist</h2>
+                <div id="playlist-list">
+                    <div class="empty-state">
+                        <p>No hay canciones en tu playlist</p>
+                        <p style="font-size: 14px;">Agrega tu primera canción usando el formulario</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Reproductor Global (el mismo de las otras páginas) -->
+    <div class="player-container">
+        <div class="player">
+            <!-- Información de la canción -->
+            <div class="song-info">
+                <div class="cover-container">
+                    <div class="cover-placeholder" style="width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(135deg, #ff1744 0%, #c4001d 100%); display: flex; align-items: center; justify-content: center; font-size: 24px;">🎵</div>
+                </div>
+                <div class="track-info">
+                    <h2 id="player-titulo">No hay canciones</h2>
+                    <p id="player-artista">Agrega una canción para empezar</p>
+                </div>
+            </div>
+
+            <!-- Controles centrales -->
+            <div class="player-center">
+                <div class="controls">
+                    <button onclick="retroceder()">⏮</button>
+                    <button id="play-pause" onclick="togglePlay()">▶</button>
+                    <button onclick="adelantar()">⏭</button>
+                </div>
+                <div class="progress-container">
+                    <span id="current-time">0:00</span>
+                    <input type="range" id="progress-bar" value="0" min="0" max="100">
+                    <span id="total-time" id="player-duracion">0:00</span>
+                </div>
+            </div>
+
+            <!-- Extras -->
+            <div class="player-extras"></div>
+        </div>
+    </div>
+
+
+<script>
+    let isPlaying = false;
+    let simulatedProgress = 0;
+    let progressInterval = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarCanciones();
+        cargarCancionActual();
+        
+        document.getElementById('posicion').addEventListener('change', (e) => {
+            const customField = document.getElementById('posicion-custom');
+            customField.style.display = e.target.value === 'custom' ? 'block' : 'none';
+        });
+    });
+
+    document.getElementById('form-agregar').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const titulo = document.getElementById('titulo').value;
+        const artista = document.getElementById('artista').value;
+        const duracion = document.getElementById('duracion').value;
+        const album = document.getElementById('album').value;
+        const posicionSelect = document.getElementById('posicion').value;
+        
+        let posicion = posicionSelect;
+        if (posicionSelect === 'custom') {
+            posicion = document.getElementById('posicion-numero').value;
+        }
+        
+        try {
+            const res = await fetch('/api/mi_playlist/agregar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titulo, artista, duracion, album, posicion })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                mostrarCanciones(data.canciones);
+                document.getElementById('form-agregar').reset();
+                document.getElementById('duracion').value = '3:30';
+                cargarCancionActual();
+            }
+        } catch (error) {
+            console.error('Error agregando canción:', error);
+        }
+    });
+
+    async function cargarCanciones() {
+        try {
+            const res = await fetch('/api/mi_playlist/canciones');
+            const data = await res.json();
+            mostrarCanciones(data.canciones);
+            document.getElementById('total-canciones').textContent = data.tamanio;
+        } catch (error) {
+            console.error('Error cargando canciones:', error);
+        }
+    }
+
+    function mostrarCanciones(canciones) {
+        const container = document.getElementById('playlist-list');
+        
+        if (canciones.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay canciones en tu playlist</p>
+                    <p style="font-size: 14px;">Agrega tu primera canción usando el formulario</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = canciones.map((cancion, index) => `
+            <div class="song-card ${cancion.es_actual ? 'active' : ''}" data-id="${cancion.id}">
+                <div class="song-number">${index + 1}</div>
+                <div class="song-details">
+                    <h4>${cancion.titulo}</h4>
+                    <p>${cancion.artista}${cancion.album ? ' • ' + cancion.album : ''} • ${cancion.duracion}</p>
+                </div>
+                <div class="song-actions">
+                    <button onclick="reproducir('${cancion.id}')" class="btn-icon" title="Reproducir">▶</button>
+                    <button onclick="eliminar('${cancion.id}')" class="btn-icon btn-delete" title="Eliminar">🗑</button>
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('total-canciones').textContent = canciones.length;
+    }
+
+    async function reproducir(id) {
+    try {
+        // Primero actualizar la canción actual en la lista doblemente enlazada
+        const resLista = await fetch(`/api/mi_playlist/reproducir/${id}`, { method: 'POST' });
+        const dataLista = await resLista.json();
+        
+        if (!dataLista.success) {
+            alert('Error al seleccionar la canción');
+            return;
+        }
+        
+        // Ahora buscar y reproducir en Spotify
+        const resSpotify = await fetch(`/api/mi_playlist/reproducir_spotify/${id}`, { method: 'POST' });
+        const dataSpotify = await resSpotify.json();
+        
+        if (dataSpotify.success) {
+            // Actualizar UI con información de Spotify
+            actualizarReproductor(dataSpotify.cancion);
+            mostrarCanciones(dataSpotify.canciones);
+            isPlaying = true;
+            document.getElementById('play-pause').textContent = '⏸';
+            
+            // Mostrar mensaje de éxito
+            console.log('[v0] Reproduciendo en Spotify:', dataSpotify.spotify_track.name);
+            
+            // Iniciar actualización del progreso real de Spotify
+            iniciarActualizacionSpotify();
+        } else {
+            // Si no se encuentra en Spotify, mostrar error pero mantener seleccionada en la lista
+            alert(dataSpotify.message || 'No se pudo reproducir en Spotify. Verifica que la canción exista en Spotify.');
+            actualizarReproductor(dataLista.cancion);
+            mostrarCanciones(dataLista.canciones);
+        }
+    } catch (error) {
+        console.error('Error reproduciendo:', error);
+        alert('Error al reproducir la canción. Asegúrate de tener Spotify abierto.');
+    }
+}
+
+// Nueva función para sincronizar con el estado real de Spotify
+let spotifyUpdateInterval = null;
+
+function iniciarActualizacionSpotify() {
+    detenerActualizacionSpotify();
+    
+    spotifyUpdateInterval = setInterval(async () => {
+        try {
+            const res = await fetch('/current');
+            const data = await res.json();
+            
+            if (data.trackId) {
+                // Actualizar barra de progreso con datos reales de Spotify
+                const progressBar = document.getElementById('progress-bar');
+                const currentTime = document.getElementById('current-time');
+                
+                if (data.duration > 0) {
+                    progressBar.max = data.duration;
+                    progressBar.value = data.progress || 0;
+                    currentTime.textContent = formatTime((data.progress || 0) / 1000);
+                }
+                
+                isPlaying = true;
+                document.getElementById('play-pause').textContent = '⏸';
+            } else {
+                isPlaying = false;
+                document.getElementById('play-pause').textContent = '▶';
+            }
+        } catch (error) {
+            console.error('[v0] Error actualizando estado de Spotify:', error);
+        }
+    }, 1000);
+}
+
+function detenerActualizacionSpotify() {
+    if (spotifyUpdateInterval) {
+        clearInterval(spotifyUpdateInterval);
+        spotifyUpdateInterval = null;
+    }
+}
+
+function formatTime(segundos) {
+    const mins = Math.floor(segundos / 60);
+    const secs = Math.floor(segundos % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+// Iniciar sincronización cuando se carga la página
+document.addEventListener('DOMContentLoaded', () => {
+    cargarCanciones();
+    cargarCancionActual();
+    iniciarActualizacionSpotify();
+    
+    document.getElementById('posicion').addEventListener('change', (e) => {
+        const customField = document.getElementById('posicion-custom');
+        customField.style.display = e.target.value === 'custom' ? 'block' : 'none';
+    });
+});
+
+
+    async function eliminar(id) {
+        if (!confirm('¿Eliminar esta canción de la playlist?')) return;
+        
+        try {
+            const res = await fetch(`/api/mi_playlist/eliminar/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            
+            if (data.success) {
+                mostrarCanciones(data.canciones);
+                if (data.actual) {
+                    actualizarReproductor(data.actual);
+                } else {
+                    actualizarReproductor({
+                        titulo: 'No hay canciones',
+                        artista: 'Agrega una canción para empezar',
+                        duracion: '0:00'
+                    });
+                    isPlaying = false;
+                    document.getElementById('play-pause').textContent = '▶';
+                    detenerSimulacionProgreso();
+                }
+            }
+        } catch (error) {
+            console.error('Error eliminando:', error);
+        }
+    }
+
+    async function adelantar() {
+        try {
+            const res = await fetch('/api/mi_playlist/adelantar', { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.success) {
+                actualizarReproductor(data.cancion);
+                mostrarCanciones(data.canciones);
+                if (isPlaying) {
+                    iniciarSimulacionProgreso(data.cancion.duracion);
+                }
+            }
+        } catch (error) {
+            console.error('Error adelantando:', error);
+        }
+    }
+
+    async function retroceder() {
+        try {
+            const res = await fetch('/api/mi_playlist/retroceder', { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.success) {
+                actualizarReproductor(data.cancion);
+                mostrarCanciones(data.canciones);
+                if (isPlaying) {
+                    iniciarSimulacionProgreso(data.cancion.duracion);
+                }
+            }
+        } catch (error) {
+            console.error('Error retrocediendo:', error);
+        }
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        document.getElementById('play-pause').textContent = isPlaying ? '⏸' : '▶';
+        
+        if (isPlaying) {
+            const duracion = document.getElementById('total-time').textContent;
+            iniciarSimulacionProgreso(duracion);
+        } else {
+            detenerSimulacionProgreso();
+        }
+    }
+
+    async function cargarCancionActual() {
+        try {
+            const res = await fetch('/api/mi_playlist/actual');
+            const cancion = await res.json();
+            actualizarReproductor(cancion);
+        } catch (error) {
+            console.error('Error cargando canción actual:', error);
+        }
+    }
+
+    function actualizarReproductor(cancion) {
+        document.getElementById('player-titulo').textContent = cancion.titulo;
+        document.getElementById('player-artista').textContent = cancion.artista;
+        document.getElementById('total-time').textContent = cancion.duracion;
+        simulatedProgress = 0;
+        document.getElementById('progress-bar').value = 0;
+        document.getElementById('current-time').textContent = '0:00';
+    }
+
+    function iniciarSimulacionProgreso(duracionStr) {
+        detenerSimulacionProgreso();
+        
+        // Convertir duración "3:30" a segundos
+        const partes = duracionStr.split(':');
+        const totalSegundos = parseInt(partes[0]) * 60 + parseInt(partes[1]);
+        
+        simulatedProgress = 0;
+        document.getElementById('progress-bar').max = totalSegundos;
+        
+        progressInterval = setInterval(() => {
+            if (simulatedProgress >= totalSegundos) {
+                detenerSimulacionProgreso();
+                adelantar(); // Auto-avanzar a la siguiente canción
+                return;
+            }
+            
+            simulatedProgress++;
+            document.getElementById('progress-bar').value = simulatedProgress;
+            document.getElementById('current-time').textContent = formatTime(simulatedProgress);
+        }, 1000);
+    }
+
+    function detenerSimulacionProgreso() {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+    }
+
+    function formatTime(segundos) {
+        const mins = Math.floor(segundos / 60);
+        const secs = segundos % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Permitir buscar en la barra de progreso
+    document.getElementById('progress-bar').addEventListener('input', (e) => {
+        simulatedProgress = parseInt(e.target.value);
+        document.getElementById('current-time').textContent = formatTime(simulatedProgress);
+    });
+</script>
+</body>
+</html>
