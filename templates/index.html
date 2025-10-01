@@ -203,9 +203,25 @@
             }
         });
 
-        function playAlbum(albumId) {
-            console.log("Reproducir álbum:", albumId);
+async function playAlbum(albumId) {
+    console.log("[v0] Reproduciendo álbum:", albumId);
+    
+    try {
+        const res = await fetch(`/play_album/${albumId}`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.success) {
+            console.log("[v0] Álbum reproducido exitosamente");
+            setTimeout(loadCurrentTrack, 1000);
+        } else {
+            alert(data.message || "No se pudo reproducir el álbum");
         }
+    } catch (error) {
+        console.error("[v0] Error reproduciendo álbum:", error);
+        alert("Error al reproducir. Asegúrate de tener Spotify abierto.");
+    }
+}
+
 
         setInterval(loadCurrentTrack, 3000);
         loadCurrentTrack();

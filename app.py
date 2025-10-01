@@ -513,7 +513,7 @@ def obtener_actual_mi_playlist():
 @app.route("/api/mi_playlist/reproducir_spotify/<nodo_id>", methods=["POST"])
 def reproducir_spotify_desde_mi_playlist(nodo_id):
     """Busca y reproduce en Spotify la canción de mi playlist"""
-    # <CHANGE> Obtener el objeto Spotify
+    # <CHANGE> Agregar get_spotify() que faltaba
     sp = get_spotify()
     if not sp:
         return jsonify({"success": False, "message": "No autenticado"}), 401
@@ -586,7 +586,60 @@ def reproducir_spotify_desde_mi_playlist(nodo_id):
             "success": False,
             "message": f"Error: {str(e)}"
         }), 500
-
+        
+@app.route("/api/album/<album_id>/tracks")
+def get_album_tracks(album_id):
+    sp = get_spotify()
+    if not sp:
+        return jsonify({"error": "No autenticado"}), 401
+    
+    try:
+        album = sp.album_tracks(album_id)
+        tracks = [{"id": track["id"], "name": track["name"]} for track in album["items"]]
+        return jsonify({"tracks": tracks})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+    
+@app.route("/play_album/<album_id>", methods=["POST"])
+def play_album(album_id):
+    """Reproduce un álbum completo en Spotify"""
+    sp = get_spotify()
+    if not sp:
+        return jsonify({"success": False, "message": "No autenticado"}), 401
+    
+    try:
+        # Obtener las canciones del álbum
+        album = sp.album_tracks(album_id)
+        
+        if not album['items']:
+            return jsonify({"success": False, "message": "Álbum vacío"}), 404
+        
+        # Crear lista de URIs de las canciones
+        track_uris = [f"spotify:track:{track['id']}" for track in album['items']]
+        
+        # Reproducir el álbum
+        try:
+            sp.start_playback(uris=track_uris)
+            return jsonify({"success": True, "message": "Álbum reproducido"})
+        except Exception as playback_error:
+            # Si no hay dispositivo activo, intentar transferir
+            devices = sp.devices()
+            if devices['devices']:
+                sp.transfer_playback(devices['devices'][0]['id'], force_play=True)
+                sp.start_playback(uris=track_uris)
+                return jsonify({"success": True, "message": "Álbum reproducido"})
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "No hay dispositivos de Spotify activos. Abre Spotify en tu dispositivo."
+                }), 400
+                
+    except Exception as e:
+        print(f"Error reproduciendo álbum: {str(e)}")
+        return jsonify({"success": False, "message": f"Error: {str(e)}"}), 500
+    
+    
 # ----------------- MAIN -----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
