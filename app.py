@@ -62,13 +62,11 @@ def toggle_favorito(track_id):
     if not sp:
         return jsonify({"error": "No autenticado"}), 401
     
-    # Inicializar favoritos en sesión si no existe
     if "favoritos" not in session:
         session["favoritos"] = []
     
     favoritos = session["favoritos"]
     
-    # Toggle: si está, quitar; si no está, agregar
     if track_id in favoritos:
         favoritos.remove(track_id)
         estado = "removed"
@@ -260,9 +258,9 @@ def callback():
     session["token_info"] = token_info
     return redirect(url_for("index"))
 
-# ========================================
-# LISTA DOBLEMENTE ENLAZADA PARA EL TALLER
-# ========================================
+# ==================================================
+# LISTA DOBLEMENTE ENLAZADA - PLAYLIST PERSONALIZADA
+# ==================================================
 
 import uuid
 
@@ -623,7 +621,6 @@ def play_album(album_id):
             sp.start_playback(uris=track_uris)
             return jsonify({"success": True, "message": "Álbum reproducido"})
         except Exception as playback_error:
-            # Si no hay dispositivo activo, intentar transferir
             devices = sp.devices()
             if devices['devices']:
                 sp.transfer_playback(devices['devices'][0]['id'], force_play=True)

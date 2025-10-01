@@ -709,9 +709,7 @@ h2 {
     animation: fadeIn 0.5s ease-out;
 }
 
-/* <CHANGE> Removida la clase .wave ya que ahora usamos pseudo-elementos en .cover-container */
-
-/* Ondas animadas (opcional, más sutil) */
+/* Animación de onda en la portada */
 .wave {
     position: absolute;
     border: 2px solid var(--color-primary);
@@ -733,7 +731,7 @@ h2 {
         opacity: 0;
     }
 }
-/* Ajuste para evitar que el contenido se superponga con el reproductor */
+
 .main-content {
     padding-bottom: 180px;
 }
